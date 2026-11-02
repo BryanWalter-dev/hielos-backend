@@ -1,58 +1,88 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Hielos del Maipo · API de solicitudes de pedido (Unidad 1)
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Evaluación Sumativa U1 · Desarrollo Backend.
 
-## About Laravel
+API REST en PHP con Laravel para registrar y consultar **solicitudes de pedido**.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Requisitos
+- PHP 8.3 o superior
+- Composer 2
+- MySQL o MariaDB (se probó con el que trae XAMPP)
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Instalación y ejecución local
+1. Clonar el repositorio y entrar en la carpeta del proyecto.
+2. Instalar dependencias: `composer install`
+3. Copiar la configuración de ejemplo: `copy .env.example .env` (en Linux o Mac: `cp .env.example .env`)
+4. Generar la clave de la aplicación: `php artisan key:generate`
+5. Crear una base de datos vacía llamada `hielos_maipo` (cotejamiento `utf8mb4_unicode_ci`).
+6. Revisar en `.env` los datos de conexión (`DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD`). El archivo `.env` no se sube al repositorio.
+7. Crear las tablas y cargar datos de prueba: `php artisan migrate --seed`
+8. Levantar el servidor: `php artisan serve` (queda en `http://127.0.0.1:8000`)
 
-## Learning Laravel
+## Endpoints
+Todas las rutas llevan el prefijo `/api`. Enviar siempre el header `Accept: application/json`.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+| Método | Ruta | Descripción | Códigos |
+|---|---|---|---|
+| GET | `/api/solicitudes-pedido` | Lista paginada (`?page=1&per_page=15`, máximo 100) | 200 |
+| POST | `/api/solicitudes-pedido` | Crea una solicitud | 201, 422 |
+| GET | `/api/solicitudes-pedido/{id}` | Muestra una solicitud | 200, 404 |
+| PUT / PATCH | `/api/solicitudes-pedido/{id}` | Actualiza (PUT: todos los campos; PATCH: solo los enviados) | 200, 404, 422 |
+| DELETE | `/api/solicitudes-pedido/{id}` | Elimina una solicitud | 204, 404 |
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### Modelo `SolicitudPedido`
+| Campo | Tipo | Regla de validación |
+|---|---|---|
+| id | entero | Generado automáticamente |
+| cliente | texto | Obligatorio, de 3 a 100 caracteres (nombre o referencia ficticia) |
+| cantidad | entero | Obligatorio, de 1 a 100000 (unidad de medida por confirmar) |
+| fecha_requerida | fecha | Obligatoria, formato `AAAA-MM-DD`, no anterior a hoy |
+| estado | texto | Opcional; uno de `pendiente`, `en_revision`, `completada`, `cancelada` (por defecto `pendiente`) |
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
-
-```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+### Ejemplo de petición válida
+`POST /api/solicitudes-pedido`
+```json
+{ "cliente": "Cliente de ejemplo", "cantidad": 25, "fecha_requerida": "2026-12-15" }
+```
+Respuesta `201 Created` (ejemplo):
+```json
+{ "data": { "id": 17, "cliente": "Cliente de ejemplo", "cantidad": 25, "fecha_requerida": "2026-12-15", "estado": "pendiente" } }
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+### Ejemplo de petición inválida
+`POST /api/solicitudes-pedido`
+```json
+{ "cliente": "", "cantidad": 0, "fecha_requerida": "15-12-2026", "estado": "inventado" }
+```
+Respuesta `422 Unprocessable Content` con un mensaje por cada campo en `errors`.
 
-## Contributing
+## Pruebas y evidencias
+- Colección de Postman con 11 peticiones y pruebas automáticas: `docs/Hielos-del-Maipo-API.postman_collection.json`
+- Resultado de la ejecución completa (21 pruebas, 0 fallos): `docs/`
+- Comparación de rendimiento antes y después de la paginación, con las etiquetas de Git `antes-paginacion` y `despues-paginacion`.
+- Para generar volumen de prueba: `php artisan db:seed --class=SolicitudPedidoMasivoSeeder` (20.000 registros ficticios).
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## Relación con el frontend
+Es un proyecto separado del frontend (otra asignatura). No se integran técnicamente en la Unidad 1, pero comparten el contexto. Correspondencia de campos:
 
-## Code of Conduct
+| Frontend (formulario) | Backend (`SolicitudPedido`) |
+|---|---|
+| nombre | cliente |
+| cantidad | cantidad |
+| (no existe) | fecha_requerida, estado |
+| contacto, formato, sector, comentario | no están en la entidad mínima |
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+## Dificultades conocidas
+- La regla `fecha_requerida` no admite fechas pasadas, por lo que un `PUT` sobre una solicitud antigua exige una fecha nueva. El `PATCH` de solo el estado sí funciona.
+- La paginación usa `OFFSET`; en páginas muy profundas de tablas con millones de filas sería más lenta (alternativa: paginación por cursor).
+- No hay autenticación ni autorización: cualquier cliente puede usar todos los endpoints (alcance excluido en la Unidad 1).
+- Las rutas usan HTTP sin cifrado (`http://127.0.0.1`), solo para desarrollo local.
 
-## Security Vulnerabilities
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+## Declaración de uso de Inteligencia Artificial
+* Ayuda con la instalación de php laravel.
+* Ayuda para iterar error generado por un mal nombre en la bbdd (.env)
+* Analisis de resultados de las pruebas aplicadas por mi (modo confirmación)
+* Generación de readme estandar para ir completando con la información necesaria.
+* Ayuda con un error de github por credenciales antiguas vinculadas a mi pc.
