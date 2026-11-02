@@ -6,12 +6,30 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\SolicitudPedidoRequest;
 use App\Models\SolicitudPedido;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class SolicitudPedidoController extends Controller
 {
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        return response()->json(['data' => SolicitudPedido::orderBy('id')->get()]);
+        // Por defecto 15 por página; si el valor no es válido se usa 15, y el máximo es 100
+        $porPagina = (int) $request->query('per_page', 15);
+        if ($porPagina < 1) {
+            $porPagina = 15;
+        }
+        $porPagina = min($porPagina, 100);
+
+        $pagina = SolicitudPedido::orderBy('id')->paginate($porPagina);
+
+        return response()->json([
+            'data' => $pagina->items(),
+            'meta' => [
+                'page' => $pagina->currentPage(),
+                'per_page' => $pagina->perPage(),
+                'total' => $pagina->total(),
+                'last_page' => $pagina->lastPage(),
+            ],
+        ]);
     }
 
     public function store(SolicitudPedidoRequest $request): JsonResponse
